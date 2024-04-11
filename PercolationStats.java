@@ -19,9 +19,11 @@ public class PercolationStats {
         for (int i = 0; i < trials; i++) {
             Percolation sys = new Percolation(n);
             while (!sys.percolates()) {
-                int row = StdRandom.uniformInt(1, n + 1);
-                int col = StdRandom.uniformInt(1, n + 1);
-                sys.open(row, col);
+                int row = StdRandom.uniformInt(n) + 1;
+                int col = StdRandom.uniformInt(n) + 1;
+                if (!sys.isOpen(row, col)) {
+                    sys.open(row, col);
+                }
             }
             double result = (double) sys.numberOfOpenSites() / (n * n);
             this.results[i] = result;
@@ -37,9 +39,9 @@ public class PercolationStats {
         int n = Integer.parseInt(args[0]);
         int trials = Integer.parseInt(args[1]);
         PercolationStats statsOne = new PercolationStats(n, trials);
-        StdOut.printf("%-20s= %f%n", "mean", statsOne.mean());
-        StdOut.printf("%-20s= %f%n", "stddev", statsOne.stddev());
-        StdOut.printf("%-20s= %f, %f%n", "95% confidence interval", statsOne.confidenceLo(),
+        StdOut.printf("%-20s = %f%n", "mean", statsOne.mean());
+        StdOut.printf("%-20s = %f%n", "stddev", statsOne.stddev());
+        StdOut.printf("%-20s = [%f, %f]%n", "95% confidence interval", statsOne.confidenceLo(),
                 statsOne.confidenceHi());
     }
 

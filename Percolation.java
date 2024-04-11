@@ -9,96 +9,101 @@ public class Percolation {
     private int numOpenedSites;
 
     public Percolation(int n) {
-        grid = new boolean[n][n];
-        unionFind = new WeightedQuickUnionUF((n * n) + 2);
-        virtualTopSite = 0;
-        virtualBottomSite = n * n + 1;
+        if (n <= 0) {
+            throw new IllegalArgumentException();
+        }
         size = n;
         numOpenedSites = 0;
+        grid = new boolean[n][n];
 
         // initialize the grid
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
                 grid[i][j] = false;
-                if (i == 0) {
-                    unionFind.union(virtualTopSite, j + 1);
-                }
-                if (i == n - 1) {
-                    unionFind.union(virtualBottomSite, i * n + j);
-                }
             }
         }
-    }
 
-    public static void main(String[] args) {
-    }
+        int unionFindListLen = (n * n) + 2;
+        unionFind = new WeightedQuickUnionUF(unionFindListLen);
+        virtualTopSite = unionFindListLen - 2;
+        virtualBottomSite = unionFindListLen - 1;
 
-    public int numberOfOpenSites() {
-        return numOpenedSites;
-    }
-
-    private boolean validIndices(int row, int col) {
-        return !(row < 1 || row > size || col < 1 || col > size);
-    }
-
-    private int shifted1dIdx(int row, int col) {
-        return ((row * size) + col) + 1;
     }
 
     // open site(row, col)
     public void open(int row, int col) {
-        if (!validIndices(row, col)) throw new IllegalArgumentException();
-        if (!isOpen(row, col)) {
-            int shiftedRow = row - 1;
-            int shiftedCol = col - 1;
+        validateBounds(row, col);
+        row--;
+        col--;
+        if (grid[row][col]) return;
 
-            grid[shiftedRow][shiftedCol] = true;
-            numOpenedSites++;
+        grid[row][col] = true;
+        numOpenedSites++;
 
+        int site = xyTo1DPosition(row, col);
+        if (row == 0) {
+            unionFind.union(virtualTopSite, site);
+        }
+        if (row == this.size - 1) {
+            unionFind.union(virtualBottomSite, site);
+        }
 
-            int siteIdx = shifted1dIdx(shiftedRow, shiftedCol);   // the idx is shifted by 1
-            // remember 0 is idx of the virtualTopSite
+        // check for opened neighbors to union with
+        // top
+        if (row - 1 >= 0 && grid[row - 1][col]) {
+            unionFind.union(site, xyTo1DPosition(row - 1, col));
+        }
 
-            // check for opened neighbors to union with
-            if (validIndices(row - 1, col) && isOpen(row - 1, col)) {
-                int neighborIdx = shifted1dIdx(shiftedRow - 1, shiftedCol);
-                unionFind.union(siteIdx, neighborIdx);
-            }
+        // left
+        if (col - 1 >= 0 && grid[row][col - 1]) {
+            unionFind.union(site, xyTo1DPosition(row, col - 1));
+        }
 
-            if (validIndices(row, col - 1) && isOpen(row, col - 1)) {
-                int neighborIdx = shifted1dIdx(shiftedRow, shiftedCol - 1);
-                unionFind.union(siteIdx, neighborIdx);
-            }
+        // bottom
+        if (row + 1 < size && grid[row + 1][col]) {
+            unionFind.union(site, xyTo1DPosition(row + 1, col));
+        }
 
-            if (validIndices(row + 1, col) && isOpen(row + 1, col)) {
-                int neighborIdx = shifted1dIdx(shiftedRow + 1, shiftedCol);
-                unionFind.union(siteIdx, neighborIdx);
-            }
-
-            if (validIndices(row, col + 1) && isOpen(row, col + 1)) {
-                int neighborIdx = shifted1dIdx(shiftedRow, shiftedCol + 1);
-                unionFind.union(siteIdx, neighborIdx);
-            }
+        // right
+        if (col + 1 < size && grid[row][col + 1]) {
+            unionFind.union(site, xyTo1DPosition(row, col + 1));
         }
     }
 
     // is the site(row, col) open ?
     public boolean isOpen(int row, int col) {
-        if (!validIndices(row, col)) throw new IllegalArgumentException();
+        validateBounds(row, col);
         return grid[row - 1][col - 1];
     }
 
+
     // is site connected to the virtualTopSite ?
     public boolean isFull(int row, int col) {
-        if (!validIndices(row, col)) throw new IllegalArgumentException();
-        row -= 1;
-        col -= 1;
-        int siteIdx = (row * size + col) + 1;
-        return unionFind.find(siteIdx) == virtualTopSite;
+        validateBounds(row, col);
+        row--;
+        col--;
+        if (!grid[row][col]) return false;
+        int site = xyTo1DPosition(row, col);
+        return unionFind.find(site) == unionFind.find(virtualTopSite);
     }
 
-    // is the system percolating ?
+
+    public int numberOfOpenSites() {
+        return numOpenedSites;
+    }
+
+    private void validateBounds(int row, int col) {
+        if (row <= 0 || row > size || col <= 0 || col > size) {
+            throw new IllegalArgumentException("Coordinates (" + row + ", " + col + ") is out of bounds for size: " + size);
+        }
+    }
+
+    private int xyTo1DPosition(int row, int col) {
+        return (row * size) + col;
+    }
+
+    // does the system percolate ?
     public boolean percolates() {
-        return unionFind.find(virtualBottomSite) == virtualTopSite;
+        return unionFind.find(virtualBottomSite) == unionFind.find(virtualTopSite);
     }
 }
